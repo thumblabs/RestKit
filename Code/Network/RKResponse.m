@@ -23,6 +23,8 @@
 #import "RKLog.h"
 #import "RKParserRegistry.h"
 #import "RKRequestCache.h"
+#import "NSData+Base64.h"
+#import "NSString+Crypto.h"
 
 // Set Logging Component
 #undef RKLogComponent
@@ -114,9 +116,20 @@ return __VA_ARGS__;                                                             
 {
     BOOL proceed = NO;
 
-    if (_request.disableCertificateValidation) {
+    if ([_request SSLCertificateHash]) {
+        
+        SecCertificateRef certificate = SecTrustGetCertificateAtIndex(trust, 0);
+        NSData* serverCertificateData = (NSData*)SecCertificateCopyData(certificate);
+        NSString *serverCertificateDataHash = [[serverCertificateData base64EncodedString] SHA256];
+        [serverCertificateData release];
+        
+        // Check if the certificate returned from the server is identical to the saved certificate in the main bundle
+        return ([serverCertificateDataHash isEqualToString:[_request SSLCertificateHash]]);
+    }
+    else if (_request.disableCertificateValidation) {
         proceed = YES;
-    } else if ([_request.additionalRootCertificates count] > 0 ) {
+    }
+    else if ([_request.additionalRootCertificates count] > 0 ) {
         CFArrayRef rootCerts = (CFArrayRef)[_request.additionalRootCertificates allObjects];
         SecTrustResultType result;
         OSStatus returnCode;
@@ -174,15 +187,20 @@ return __VA_ARGS__;                                                             
     RKResponseIgnoreDelegateIfCancelled(NO);
     RKLogDebug(@"Asked if canAuthenticateAgainstProtectionSpace: with authenticationMethod = %@", [space authenticationMethod]);
     if ([[space authenticationMethod] isEqualToString:NSURLAuthenticationMethodServerTrust]) {
+        
         // server is using an SSL certificate that the OS can't validate
         // see whether the client settings allow validation here
-        if (_request.disableCertificateValidation || [_request.additionalRootCertificates count] > 0) {
+        if (_request.disableCertificateValidation ||
+            [_request.additionalRootCertificates count] > 0 ||
+            [_request SSLCertificateHash]) {
+            
             return YES;
+            
         } else {
             return NO;
         }
     }
-
+    
     // Handle non-SSL challenges
     BOOL hasCredentials = [self hasCredentials];
     if (! hasCredentials) {

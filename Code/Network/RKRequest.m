@@ -123,6 +123,7 @@ RKRequestMethod RKRequestMethodTypeFromName(NSString *methodName) {
 @synthesize onDidFailLoadWithError;
 @synthesize additionalRootCertificates = _additionalRootCertificates;
 @synthesize disableCertificateValidation = _disableCertificateValidation;
+@synthesize SSLCertificateHash = _SSLCertificateHash;
 @synthesize followRedirect = _followRedirect;
 @synthesize runLoopMode = _runLoopMode;
 @synthesize loaded = _loaded;

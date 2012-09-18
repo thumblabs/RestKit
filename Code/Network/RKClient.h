@@ -117,6 +117,7 @@
     BOOL _disableCertificateValidation;
     NSStringEncoding _defaultHTTPEncoding;
     NSString *_runLoopMode;
+    NSString *_SSLCertificateHash;
 
     // Queue suspension flags
     BOOL _awaitingReachabilityDetermination;
@@ -272,6 +273,9 @@
  certificates.
  */
 @property (nonatomic, retain, readonly) NSSet *additionalRootCertificates;
+
+
+@property (nonatomic, retain) NSString *SSLCertificateHash;
 
 /**
  Adds an additional certificate that will be used to evaluate server SSL certs.

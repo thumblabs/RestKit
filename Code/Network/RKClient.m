@@ -96,6 +96,7 @@ NSString *RKPathAppendQueryParams(NSString *resourcePath, NSDictionary *queryPar
 @synthesize defaultHTTPEncoding = _defaultHTTPEncoding;
 @synthesize cacheTimeoutInterval = _cacheTimeoutInterval;
 @synthesize runLoopMode = _runLoopMode;
+@synthesize SSLCertificateHash = _SSLCertificateHash;
 
 + (RKClient *)sharedClient
 {
@@ -237,6 +238,7 @@ NSString *RKPathAppendQueryParams(NSString *resourcePath, NSDictionary *queryPar
 
     request.additionalRootCertificates = self.additionalRootCertificates;
     request.disableCertificateValidation = self.disableCertificateValidation;
+    request.SSLCertificateHash = self.SSLCertificateHash;
     request.runLoopMode = self.runLoopMode;
 
     // If a timeoutInterval was set on the client, we'll pass it on to the request.

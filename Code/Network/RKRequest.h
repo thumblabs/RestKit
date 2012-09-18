@@ -580,6 +580,7 @@ typedef void(^RKRequestDidFailLoadWithErrorBlock)(NSError *error);
  */
 @property (nonatomic, retain) NSSet *additionalRootCertificates;
 
+@property (nonatomic, retain) NSString *SSLCertificateHash;
 
 ///-----------------------------------------------------------------------------
 /// @name Sending and Managing the Request
