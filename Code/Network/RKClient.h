@@ -27,12 +27,7 @@
 #import "RKRequestCache.h"
 #import "RKRequestQueue.h"
 #import "RKConfigurationDelegate.h"
-#import "RKRouter.h"
-#import "RKRoute.h"
-#import "RKMacros.h"
 
-// Retrieves the dispatch queue for emitting network processing events
-dispatch_queue_t rk_get_network_processing_queue(void);
 
 /**
  RKClient exposes the low level client interface for working with HTTP servers
@@ -87,7 +82,6 @@ dispatch_queue_t rk_get_network_processing_queue(void);
  provided via the RKRequestSerializable protocol and is not specific to
  NSDictionary objects.
 
-
  ### Sending Asynchronous Requests
 
  A handful of methods are provided as a convenience to cover the common
@@ -101,7 +95,29 @@ dispatch_queue_t rk_get_network_processing_queue(void);
  @see RKRequestSerializable
  */
 @interface RKClient : NSObject <RKConfigurationDelegate> {
+    RKURL *_baseURL;
+    RKRequestAuthenticationType _authenticationType;
+    NSString *_username;
+    NSString *_password;
+    NSString *_OAuth1ConsumerKey;
+    NSString *_OAuth1ConsumerSecret;
+    NSString *_OAuth1AccessToken;
+    NSString *_OAuth1AccessTokenSecret;
+    NSString *_OAuth2AccessToken;
+    NSString *_OAuth2RefreshToken;
+    NSMutableDictionary *_HTTPHeaders;
+    RKReachabilityObserver *_reachabilityObserver;
+    NSString *_serviceUnavailableAlertTitle;
+    NSString *_serviceUnavailableAlertMessage;
+    BOOL _serviceUnavailableAlertEnabled;
+    RKRequestQueue *_requestQueue;
+    RKRequestCache *_requestCache;
+    RKRequestCachePolicy _cachePolicy;
     NSMutableSet *_additionalRootCertificates;
+    BOOL _disableCertificateValidation;
+    NSStringEncoding _defaultHTTPEncoding;
+    NSString *_runLoopMode;
+    NSString *_SSLCertificateHash;
 
     // Queue suspension flags
     BOOL _awaitingReachabilityDetermination;
@@ -150,7 +166,7 @@ dispatch_queue_t rk_get_network_processing_queue(void);
  @param password The password to use for HTTP Authentication challenges
  @return A configured RKClient instance ready to send requests
  */
-+ (RKClient *)clientWithBaseURL:(NSString *)baseURL username:(NSString *)username password:(NSString *)password DEPRECATED_ATTRIBUTE_MESSAGE("Use clientWithBaseURLString:");
++ (RKClient *)clientWithBaseURL:(NSString *)baseURL username:(NSString *)username password:(NSString *)password DEPRECATED_ATTRIBUTE;
 
 /**
  Returns a client scoped to a particular base URL. If the singleton client is
@@ -192,15 +208,6 @@ dispatch_queue_t rk_get_network_processing_queue(void);
 @property (nonatomic, retain) RKURL *baseURL;
 
 /**
- The router provides for the registration of resource path patterns
- by name, object class and HTTP method, or by relationship name, object class,
- and HTTP method.
-
- @see RKRouter
- */
-@property (nonatomic, retain) RKRouter *router;
-
-/**
  A dictionary of headers to be sent with each request
  */
 @property (nonatomic, retain, readonly) NSMutableDictionary *HTTPHeaders;
@@ -228,6 +235,7 @@ dispatch_queue_t rk_get_network_processing_queue(void);
  *Default*: NSRunLoopCommonModes
  */
 @property (nonatomic, copy) NSString *runLoopMode;
+
 
 /**
  The default value used to decode HTTP body content when HTTP headers received do not provide information on the content.
@@ -265,6 +273,9 @@ dispatch_queue_t rk_get_network_processing_queue(void);
  certificates.
  */
 @property (nonatomic, retain, readonly) NSSet *additionalRootCertificates;
+
+
+@property (nonatomic, retain) NSString *SSLCertificateHash;
 
 /**
  Adds an additional certificate that will be used to evaluate server SSL certs.
@@ -463,7 +474,7 @@ dispatch_queue_t rk_get_network_processing_queue(void);
  @see RKReachabilityObserver
  @return YES if the remote host is accessible
  */
-- (BOOL)isNetworkAvailable DEPRECATED_ATTRIBUTE_MESSAGE("Use isNetworkReachable");
+- (BOOL)isNetworkAvailable DEPRECATED_ATTRIBUTE;
 
 
 ///-----------------------------------------------------------------------------
@@ -476,7 +487,7 @@ dispatch_queue_t rk_get_network_processing_queue(void);
 
  @bug **DEPRECATED** in v0.10.0: Use requestCache instead.
  */
-@property (nonatomic, retain) RKRequestCache *cache DEPRECATED_ATTRIBUTE_MESSAGE("Use requestCache");
+@property (nonatomic, retain) RKRequestCache *cache DEPRECATED_ATTRIBUTE;
 
 /**
  An instance of the request cache used to store/load cacheable responses for
@@ -554,7 +565,7 @@ dispatch_queue_t rk_get_network_processing_queue(void);
  @return A fully configured RKRequest instance ready for sending.
  @see RKRequestDelegate
  */
-- (RKRequest *)requestWithResourcePath:(NSString *)resourcePath delegate:(NSObject<RKRequestDelegate> *)delegate DEPRECATED_ATTRIBUTE_MESSAGE("Use requestWithResourcePath");
+- (RKRequest *)requestWithResourcePath:(NSString *)resourcePath delegate:(NSObject<RKRequestDelegate> *)delegate DEPRECATED_ATTRIBUTE;
 
 /**
  Return a request object targeted at a resource path relative to the base URL.
@@ -682,7 +693,7 @@ dispatch_queue_t rk_get_network_processing_queue(void);
  @param resourcePath The resource path to build a URL against
  @return An NSURL constructed by concatenating the baseURL and the resourcePath
  */
-- (NSURL *)URLForResourcePath:(NSString *)resourcePath DEPRECATED_ATTRIBUTE_MESSAGE("Use [RKURL URLByAppendingResourcePath:]");
+- (NSURL *)URLForResourcePath:(NSString *)resourcePath DEPRECATED_ATTRIBUTE;
 
 /**
  Returns an NSString by adding a resource path to the base URL
@@ -693,7 +704,7 @@ dispatch_queue_t rk_get_network_processing_queue(void);
  @return A string URL constructed by concatenating the baseURL and the
  resourcePath.
  */
-- (NSString *)URLPathForResourcePath:(NSString *)resourcePath DEPRECATED_ATTRIBUTE_MESSAGE("Use [[RKURL URLByAppendingResourcePath:] absoluteString]");
+- (NSString *)URLPathForResourcePath:(NSString *)resourcePath DEPRECATED_ATTRIBUTE;
 
 /**
  Returns a resource path with a dictionary of query parameters URL encoded and
@@ -714,7 +725,7 @@ dispatch_queue_t rk_get_network_processing_queue(void);
  appended to the resource path.
  @return A new resource path with the query parameters appended
  */
-- (NSString *)resourcePath:(NSString *)resourcePath withQueryParams:(NSDictionary *)queryParams DEPRECATED_ATTRIBUTE_MESSAGE("Use [RKURL URLByAppendingQueryParameters:]");
+- (NSString *)resourcePath:(NSString *)resourcePath withQueryParams:(NSDictionary *)queryParams DEPRECATED_ATTRIBUTE;
 
 /**
  Returns a NSURL by adding a resource path to the base URL and appending a URL
@@ -736,7 +747,7 @@ dispatch_queue_t rk_get_network_processing_queue(void);
  @return A URL constructed by concatenating the baseURL and the resourcePath
  with the query parameters appended.
  */
-- (NSURL *)URLForResourcePath:(NSString *)resourcePath queryParams:(NSDictionary *)queryParams DEPRECATED_ATTRIBUTE_MESSAGE("Use [RKURL URLByAppendingResourcePath:queryParameters:]");
+- (NSURL *)URLForResourcePath:(NSString *)resourcePath queryParams:(NSDictionary *)queryParams DEPRECATED_ATTRIBUTE;
 
 @end
 
@@ -758,7 +769,7 @@ dispatch_queue_t rk_get_network_processing_queue(void);
  @return A fully constructed NSURL consisting of baseURL of the shared client
  singleton and the supplied resource path
  */
-NSURL *RKMakeURL(NSString *resourcePath) DEPRECATED_ATTRIBUTE_MESSAGE("Use [[RKClient sharedClient].baseURL");
+NSURL *RKMakeURL(NSString *resourcePath) DEPRECATED_ATTRIBUTE;
 
 /**
  Returns an NSString with the specified resource path appended to the base URL
@@ -797,7 +808,7 @@ NSString *RKMakeURLPath(NSString *resourcePath) DEPRECATED_ATTRIBUTE;
  actual property values.
  @see RKMakePathWithObjectAddingEscapes
  */
-NSString *RKMakePathWithObject(NSString *path, id object) DEPRECATED_ATTRIBUTE_MESSAGE("Use [NSString interpolateWithObject:]");
+NSString *RKMakePathWithObject(NSString *path, id object) DEPRECATED_ATTRIBUTE;
 
 /**
  Convenience method for generating a path against the properties of an object. Takes
@@ -818,7 +829,7 @@ NSString *RKMakePathWithObject(NSString *path, id object) DEPRECATED_ATTRIBUTE_M
  @return A new path string, replacing the pattern's parameters with the object's
  actual property values.
  */
-NSString *RKMakePathWithObjectAddingEscapes(NSString *pattern, id object, BOOL addEscapes) DEPRECATED_ATTRIBUTE_MESSAGE("Use [NSString interpolateWithObject:addingEscapes:]");
+NSString *RKMakePathWithObjectAddingEscapes(NSString *pattern, id object, BOOL addEscapes) DEPRECATED_ATTRIBUTE;
 
 /**
  Returns a resource path with a dictionary of query parameters URL encoded and
@@ -840,4 +851,4 @@ NSString *RKMakePathWithObjectAddingEscapes(NSString *pattern, id object, BOOL a
  appended to the resource path.
  @return A new resource path with the query parameters appended.
  */
-NSString *RKPathAppendQueryParams(NSString *resourcePath, NSDictionary *queryParams) DEPRECATED_ATTRIBUTE_MESSAGE("Use [NSString stringByAppendingQueryParameters:]");
+NSString *RKPathAppendQueryParams(NSString *resourcePath, NSDictionary *queryParams) DEPRECATED_ATTRIBUTE;
