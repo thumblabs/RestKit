@@ -108,7 +108,6 @@ dispatch_queue_t rk_get_network_processing_queue(void)
 @synthesize defaultHTTPEncoding = _defaultHTTPEncoding;
 @synthesize cacheTimeoutInterval = _cacheTimeoutInterval;
 @synthesize runLoopMode = _runLoopMode;
-@synthesize SSLCertificateHash = _SSLCertificateHash;
 
 + (RKClient *)sharedClient
 {
@@ -256,7 +255,6 @@ dispatch_queue_t rk_get_network_processing_queue(void)
 
     request.additionalRootCertificates = self.additionalRootCertificates;
     request.disableCertificateValidation = self.disableCertificateValidation;
-    request.SSLCertificateHash = self.SSLCertificateHash;
     request.runLoopMode = self.runLoopMode;
 
     // If a timeoutInterval was set on the client, we'll pass it on to the request.
