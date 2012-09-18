@@ -36,7 +36,9 @@
 #import "RKParserRegistry.h"
 #import "RKRequestSerialization.h"
 
-NSString *RKRequestMethodNameFromType(RKRequestMethod method) {
+extern dispatch_queue_t rk_get_network_processing_queue(void);
+
+NSString *RKStringFromRequestMethod(RKRequestMethod method) {
     switch (method) {
         case RKRequestMethodGET:
             return @"GET";
@@ -48,6 +50,10 @@ NSString *RKRequestMethodNameFromType(RKRequestMethod method) {
 
         case RKRequestMethodPUT:
             return @"PUT";
+            break;
+        
+        case RKRequestMethodPATCH:
+            return @"PATCH";
             break;
 
         case RKRequestMethodDELETE:
@@ -65,7 +71,7 @@ NSString *RKRequestMethodNameFromType(RKRequestMethod method) {
     return nil;
 }
 
-RKRequestMethod RKRequestMethodTypeFromName(NSString *methodName) {
+RKRequestMethod RKRequestMethodFromString(NSString *methodName) {
     if ([methodName isEqualToString:@"GET"]) {
         return RKRequestMethodGET;
     } else if ([methodName isEqualToString:@"POST"]) {
@@ -76,6 +82,8 @@ RKRequestMethod RKRequestMethodTypeFromName(NSString *methodName) {
         return RKRequestMethodDELETE;
     } else if ([methodName isEqualToString:@"HEAD"]) {
         return RKRequestMethodHEAD;
+    } else if ([methodName isEqualToString:@"PATCH"]) {
+        return RKRequestMethodPATCH;
     }
 
     return RKRequestMethodInvalid;
@@ -321,7 +329,7 @@ RKRequestMethod RKRequestMethodTypeFromName(NSString *methodName) {
             [_URLRequest setValue:[_params performSelector:@selector(ContentTypeHTTPHeader)] forHTTPHeaderField:@"Content-Type"];
         }
         if ([_params respondsToSelector:@selector(HTTPHeaderValueForContentLength)]) {
-            [_URLRequest setValue:[NSString stringWithFormat:@"%d", [_params HTTPHeaderValueForContentLength]] forHTTPHeaderField:@"Content-Length"];
+            [_URLRequest setValue:[NSString stringWithFormat:@"%ld", (unsigned long) [_params HTTPHeaderValueForContentLength]] forHTTPHeaderField:@"Content-Length"];
         }
     } else {
         [_URLRequest setValue:@"0" forHTTPHeaderField:@"Content-Length"];
@@ -352,34 +360,17 @@ RKRequestMethod RKRequestMethodTypeFromName(NSString *methodName) {
             parameters = [(RKParams *)self.params dictionaryOfPlainTextParams];
         else
             parameters = [_URL queryParameters];
-
-        if (self.method == RKRequestMethodPUT)
-            echo = [GCOAuth URLRequestForPath:[_URL path]
-                                PUTParameters:parameters
-                                       scheme:[_URL scheme]
-                                         host:[_URL hostAndPort]
-                                  consumerKey:self.OAuth1ConsumerKey
-                               consumerSecret:self.OAuth1ConsumerSecret
-                                  accessToken:self.OAuth1AccessToken
-                                  tokenSecret:self.OAuth1AccessTokenSecret];
-        else if (self.method == RKRequestMethodPOST)
-            echo = [GCOAuth URLRequestForPath:[_URL path]
-                               POSTParameters:parameters
-                                       scheme:[_URL scheme]
-                                         host:[_URL hostAndPort]
-                                  consumerKey:self.OAuth1ConsumerKey
-                               consumerSecret:self.OAuth1ConsumerSecret
-                                  accessToken:self.OAuth1AccessToken
-                                  tokenSecret:self.OAuth1AccessTokenSecret];
-        else
-            echo = [GCOAuth URLRequestForPath:[_URL path]
-                                GETParameters:[_URL queryParameters]
-                                       scheme:[_URL scheme]
-                                         host:[_URL hostAndPort]
-                                  consumerKey:self.OAuth1ConsumerKey
-                               consumerSecret:self.OAuth1ConsumerSecret
-                                  accessToken:self.OAuth1AccessToken
-                                  tokenSecret:self.OAuth1AccessTokenSecret];
+        
+        NSString *methodString = RKStringFromRequestMethod(self.method);        
+        echo = [GCOAuth URLRequestForPath:[_URL path] 
+                               HTTPMethod:methodString 
+                               parameters:(self.method == RKRequestMethodGET) ? [_URL queryParameters] : parameters 
+                                   scheme:[_URL scheme] 
+                                     host:[_URL host] 
+                              consumerKey:self.OAuth1ConsumerKey 
+                           consumerSecret:self.OAuth1ConsumerSecret 
+                              accessToken:self.OAuth1AccessToken 
+                              tokenSecret:self.OAuth1AccessTokenSecret];
         [_URLRequest setValue:[echo valueForHTTPHeaderField:@"Authorization"] forHTTPHeaderField:@"Authorization"];
         [_URLRequest setValue:[echo valueForHTTPHeaderField:@"Accept-Encoding"] forHTTPHeaderField:@"Accept-Encoding"];
         [_URLRequest setValue:[echo valueForHTTPHeaderField:@"User-Agent"] forHTTPHeaderField:@"User-Agent"];
@@ -435,7 +426,7 @@ RKRequestMethod RKRequestMethodTypeFromName(NSString *methodName) {
 
 - (NSString *)HTTPMethod
 {
-    return RKRequestMethodNameFromType(self.method);
+    return RKStringFromRequestMethod(self.method);
 }
 
 // NOTE: We could factor the knowledge about the queue out of RKRequest entirely, but it will break behavior.
@@ -464,7 +455,6 @@ RKRequestMethod RKRequestMethodTypeFromName(NSString *methodName) {
     }
 
     RKResponse *response = [[[RKResponse alloc] initWithRequest:self] autorelease];
-
     _connection = [[[[NSURLConnection alloc] initWithRequest:_URLRequest delegate:response startImmediately:NO] autorelease] retain];
     [_connection scheduleInRunLoop:[NSRunLoop currentRunLoop] forMode:self.runLoopMode];
     [_connection start];
@@ -509,7 +499,11 @@ RKRequestMethod RKRequestMethodTypeFromName(NSString *methodName) {
     if ([self shouldLoadFromCache]) {
         RKResponse *response = [self loadResponseFromCache];
         self.loading = YES;
-        [self performSelector:@selector(didFinishLoad:) withObject:response afterDelay:0];
+        dispatch_async(rk_get_network_processing_queue(), ^{
+            dispatch_sync(dispatch_get_main_queue(), ^{
+                [self didFinishLoad:response];
+            });
+        });
     } else if ([self shouldDispatchRequest]) {
         [self createTimeoutTimer];
 #if TARGET_OS_IPHONE
@@ -565,7 +559,11 @@ RKRequestMethod RKRequestMethodTypeFromName(NSString *methodName) {
                                       errorMessage, NSLocalizedDescriptionKey,
                                       nil];
             NSError *error = [NSError errorWithDomain:RKErrorDomain code:RKRequestBaseURLOfflineError userInfo:userInfo];
-            [self performSelector:@selector(didFailLoadWithError:) withObject:error afterDelay:0];
+            dispatch_async(rk_get_network_processing_queue(), ^{
+                dispatch_sync(dispatch_get_main_queue(), ^{
+                    [self didFailLoadWithError:error];
+                });
+            });
         }
     }
 }
@@ -703,7 +701,7 @@ RKRequestMethod RKRequestMethodTypeFromName(NSString *methodName) {
     self.loading = NO;
     self.loaded = YES;
 
-    RKLogInfo(@"Status Code: %ld", (long) [response statusCode]);
+    RKLogInfo(@"Status Code: %ld", (long)[response statusCode]);
     RKLogDebug(@"Body: %@", [response bodyAsString]);
 
     self.response = response;

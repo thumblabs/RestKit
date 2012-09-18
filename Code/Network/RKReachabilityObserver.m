@@ -50,7 +50,7 @@ NSString * const RKReachabilityWasDeterminedNotification = @"RKReachabilityWasDe
 static void ReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkReachabilityFlags flags, void *info) {
     NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 
-    RKReachabilityObserver *observer = (RKReachabilityObserver *) info;
+    RKReachabilityObserver *observer = (RKReachabilityObserver *)info;
     observer.reachabilityFlags = flags;
 
     [pool release];
@@ -140,7 +140,7 @@ static void ReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkReach
 {
     // Determine if the string contains a hostname or IP address
     struct sockaddr_in sa;
-    char *hostNameOrIPAddressCString = (char *) [hostNameOrIPAddress UTF8String];
+    char *hostNameOrIPAddressCString = (char *)[hostNameOrIPAddress UTF8String];
     int result = inet_pton(AF_INET, hostNameOrIPAddressCString, &(sa.sin_addr));
     if (result != 0) {
         // IP Address
@@ -151,7 +151,7 @@ static void ReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkReach
         remote_saddr.sin_family = AF_INET;
         inet_aton(hostNameOrIPAddressCString, &(remote_saddr.sin_addr));
 
-        return [self initWithAddress:(struct sockaddr *) &remote_saddr];
+        return [self initWithAddress:(struct sockaddr *)&remote_saddr];
     }
 
     // Hostname
@@ -396,9 +396,8 @@ static void ReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkReach
    [[NSNotificationCenter defaultCenter] postNotificationName:RKReachabilityDidChangeNotification object:self userInfo:userInfo];
 }
 
-- (NSString *)description
-{
-    return [NSString stringWithFormat:@"<%@: %p host=%@ isReachabilityDetermined=%@ isMonitoringLocalWiFi=%d reachabilityFlags=%@>",
+- (NSString *)description {
+    return [NSString stringWithFormat:@"<%@: %p host=%@ isReachabilityDetermined=%@ isMonitoringLocalWiFi=%@ reachabilityFlags=%@>",
             NSStringFromClass([self class]), self, self.host, self.isReachabilityDetermined ? @"YES" : @"NO",
             self.isMonitoringLocalWiFi ? @"YES" : @"NO", [self reachabilityFlagsDescription]];
 }

@@ -28,14 +28,9 @@
  RKRequest objects.
  */
 @interface RKRequestQueue : NSObject {
-    NSString *_name;
     NSMutableArray *_requests;
     NSMutableSet *_loadingRequests;
-    NSObject<RKRequestQueueDelegate> *_delegate;
-    NSUInteger _concurrentRequestsLimit;
-    NSUInteger _requestTimeout;
     NSTimer *_queueTimer;
-    BOOL _suspended;
     BOOL _showsNetworkActivityIndicatorWhenBusy;
 }
 
@@ -179,6 +174,13 @@
  */
 - (BOOL)containsRequest:(RKRequest *)request;
 
+/**
+ Determine if a request with the given URL is currently in this queue.
+
+ @param URL A URL to search the requests within the queue for.
+ @return YES if a request with the given URL is in this queue.
+ */
+- (BOOL)containsRequestWithURL:(NSURL *)URL;
 
 ///-----------------------------------------------------------------------------
 /// @name Processing Queued Requests

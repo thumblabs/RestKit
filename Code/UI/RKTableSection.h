@@ -24,10 +24,7 @@
 
 @class RKTableController;
 
-@interface RKTableSection : NSObject {
- @protected
-    NSMutableArray *_objects;
-}
+@interface RKTableSection : NSObject
 
 // Basics
 @property (nonatomic, assign)   RKTableController *tableController;
@@ -53,6 +50,7 @@
 + (id)sectionForObjects:(NSArray *)objects withMappings:(RKTableViewCellMappings *)cellMappings;
 
 - (id)objectAtIndex:(NSUInteger)rowIndex;
+- (void)addObject:(id)object;
 - (void)insertObject:(id)object atIndex:(NSUInteger)index;
 - (void)removeObjectAtIndex:(NSUInteger)index;
 - (void)replaceObjectAtIndex:(NSUInteger)index withObject:(id)object;
